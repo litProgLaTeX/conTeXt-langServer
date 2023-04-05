@@ -1,0 +1,6 @@
+# This script simply initializes the language server
+# and then exits
+
+- method: initialize
+  id: 1
+- method: textDocument/build

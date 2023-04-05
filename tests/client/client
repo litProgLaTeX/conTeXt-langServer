@@ -1,0 +1,72 @@
+#! ../../.venv/bin/python
+
+import asyncio
+import json
+import sys
+import yaml
+
+from contextLangServer.langserver.simpleJsonRpc import AsyncJsonRpc
+
+crlf = "\r\n"
+inputArray = []
+def addMsg(aDict) :
+  if 'jsonrpc' not in aDict : aDict['jsonrpc'] = '2.0'
+  if 'params' not in aDict  : aDict['params'] = []
+  jsonStr = json.dumps(aDict)
+  inputArray.append(f"Content-Length: {len(jsonStr)}{crlf}{crlf}{jsonStr}")
+
+def prepareStdinData(aRequestScript) :
+  rsYaml = []
+  with open(aRequestScript) as rsYamlFile :
+    rsYaml = yaml.safe_load(rsYamlFile.read())
+  for aRequest in rsYaml :
+    addMsg(aRequest)  
+  addMsg({ 'method' : 'shutdown', 'id' : len(rsYaml)+1 })
+  addMsg({ 'method' : 'exit' })
+
+def parseStdout(stdoutData) :
+  stdoutData = stdoutData.decode()
+  stdoutData = stdoutData.replace('Content-Length', '\n----\nContent-Length')
+  for aLine in stdoutData.splitlines() :
+    if aLine == '----'                   : continue
+    if len(aLine) < 1                    : continue
+    if -1 < aLine.find('Content-Length') : continue
+    jsonDict = json.loads(aLine)
+    print("--json-response:")
+    print(yaml.dump(jsonDict))
+    #print("-----")
+
+async def asyncMain() :
+  proc = await asyncio.create_subprocess_shell(
+    "context-langserver",
+    stdin=asyncio.subprocess.PIPE,
+    stdout=asyncio.subprocess.PIPE,
+    stderr=asyncio.subprocess.PIPE
+  )
+  stdinData = "".join(inputArray)
+  print("--modified-stdin-----------------------")
+  print(stdinData.replace('Content-Length', '\n----\nContent-Length'))
+  stdinData = stdinData.encode()
+  stdoutData, stderrData = await proc.communicate(stdinData)
+  print("--modified-stdout----------------------")
+  parseStdout(stdoutData)
+  print("--stderr-------------------------------")
+  print(stderrData.decode())
+  print("---------------------------------------")
+
+def main() :
+  if len(sys.argv) < 2 :
+    print("")
+    print("client <<requestScript>>")
+    print("")
+    print("This context-langserver test tool runs the given request script")
+    print("and reports the results")
+    print("")
+    sys.exit(1)
+
+  stdinData = prepareStdinData(sys.argv[1])
+
+  asyncio.run(asyncMain())
+
+if __name__ == '__main__' :
+  main()

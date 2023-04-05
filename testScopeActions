@@ -1,0 +1,20 @@
+#!/usr/bin/env python
+
+
+from contextLangServer.processor.scopeActions import ScopeActions
+
+import os
+os.system('reset')
+
+@ScopeActions.method('simple.Str.Param')
+def simpleStrParam(disp, ctx, aMessage, **kwargs) :
+  print("-----------------------------------------")
+  print('simpleStrParam')
+  print(aMessage)
+  print("-----------------------------------------")
+  ctx.append({
+    'method'   : 'simpleStrParam',
+    'msg'      : aMessage,
+    'kwargs'   : kwargs,
+    'dispType' : type(disp)
+  })
