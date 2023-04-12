@@ -30,9 +30,7 @@ class DocumentCache :
   def parse(docName, startingScope) :
     if docName in DocumentCache.documents :
       theDoc = DocumentCache.documents[docName]
-      theDocLines = theDoc.getDocIter()
-      for aLine in theDocLines :
-        print(aLine)
+      theDoc.parse(startingScope)
 
 class DocumentIter :
 
@@ -116,3 +114,15 @@ class Document :
 
   def getScopedDoc(self, aScope, startLine=None, endLine=None) :
     return ScopedDocument(self, aScope, startLine=startLine, endLine=endLine)
+
+  def parse(self, startingScope) :
+      theDocLines = self.getDocIter()
+      openScopes = { startingScope : True }
+      for aLine in theDocLines :
+        print(aLine)
+        curScopes = list(openScopes.keys()) # the open scopes for *this* line
+        for aScope in curScopes :
+          aMatch = Grammar.matchUsing(aLine, aScope)
+          if aMatch :
+            pass
+

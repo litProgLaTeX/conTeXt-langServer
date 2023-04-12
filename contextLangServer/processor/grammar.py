@@ -19,6 +19,7 @@ class Grammar :
 
   repository = {}
   scopes2patterns = {}
+  scopes2rules = {}
   baseScopes = {}
 
   def addPatternsToRepository(aName, aScope, patterns) :
@@ -44,15 +45,17 @@ class Grammar :
     if 'scopeName' in gDict :
       scopeName = gDict['scopeName']
     if 'patterns' in gDict :
-      if not scopeName :
-        print("WARNING: loading a grammer with no scope! ")
-        print("  this means that this grammar can not be directly used!")
-        print("")
       Grammar.addPatternsToRepository(
         scopeName, scopeName, {
           'patterns' : gDict['patterns']
         }
       )
+      if scopeName :
+        Grammar.repository[scopeName]['name'] = scopeName
+      else :
+        print("WARNING: loading a grammer with no scope! ")
+        print("  this means that this grammar can not be directly used!")
+        print("")
   
     # deal with the grammar's info
     info = {}
@@ -66,7 +69,6 @@ class Grammar :
       info['firstLineMatch'] = gDict['firstLineMatch']
     info['scopeName'] = scopeName
     Grammar.baseScopes[scopeName] = info
-  
 
   def loadFromFile(aGrammarPath) :
     with open(aGrammarPath) as grammarFile :
@@ -82,31 +84,14 @@ class Grammar :
         syntaxDict = json.loads(syntaxStr)
         Grammar.loadFromDict(syntaxDict)
 
-  def loadFromVSCodeDir(
-    anExtensionDir=None,
-    anAuthor='lpic-tools',
-    anExtension='context-lpic-tools',
-    grammarExt='tmGrammar.json'
-  ) :
-    if anExtensionDir is None :
-      homeDir = os.path.expanduser("~")
-      anExtensionDir = os.path.join(homeDir, '.vscode', 'extensions')
-      if not os.path.exists(anExtensionDir) :
-        anExtensionDir = os.path.join(homeDir, '.vscode-oss', 'extensions')
-    if not os.path.exists(anExtensionDir) :
-      print("Can not load grammars from VSCode directory")
-      print("  no code directory found")
-      return
-    extensionGlob = f"{anAuthor}.{anExtension}*/*/*{grammarExt}"
-    print(extensionGlob)
-    for anExtensionPath in glob.iglob(extensionGlob, root_dir=anExtensionDir) :
-      #print(anExtensionPath)
-      Grammar.loadFromFile(os.path.join(anExtensionDir, anExtensionPath))
-
-  def collectPatternReferences(aScope) :
+  def collectPatternReferences(someScopes=None) :
     repo = Grammar.repository
     patRefs = {}
-    if aScope : patRefs[aScope] = True
+    if someScopes is None :
+      for aScope in Grammar.baseScopes.keys() :
+        patRefs[aScope] = True
+    elif isinstance(someScopes, str) :
+      patRefs[someScopes] = True
     for aName, aPattern in repo.items() :
       #print(aName)
       if 'patterns' in aPattern :
@@ -118,64 +103,80 @@ class Grammar :
             patRefs[aPatRef] = True
     return list(patRefs.keys())
   
-  def collectScopePaths(withAction=False) :
-    # base case
-    aStruct = Grammar.repository
-    spDict = {}
-    spKeys = []
-    changed = True
-    while changed :
-      changed = Grammar._collectScopePaths(
-        aStruct, spDict, spKeys, withAction=withAction
-      )
-      spKeys = list(spDict.keys())
-    return spDict
 
-  def _collectScopePaths(aStruct, spDict, spKeys, withAction=False) :
-    # collectScopePaths recursion 
-    changed = False
-    if isinstance(aStruct, dict) :
-      for aKey, aValue in aStruct.items() :
-        if aKey in [ 'name', 'include' ] : 
-          strippedValue = aValue.lstrip('#')
-          if ScopeActions.hasAction(strippedValue) :
-            action = ScopeActions.getAction(strippedValue)
-            if '__action__' in action and 'method' in action['__action__'] :
-              theMethod = action['__action__']['method']
-              if 'action' not in spDict : changed = True
-              spDict['action'] = theMethod.__module__+'.'+theMethod.__name__
-              if aKey not in spDict : changed = True
-              spDict[aKey] = aValue
-          elif strippedValue in spKeys :
-            if aKey not in spDict : changed = True
-            spDict[aKey] = aValue
-          elif not withAction :
-            if aKey not in spDict : changed = True
-            spDict[aKey] = aValue
-        else :
-          spLevelDict = {}
-          if aKey in spDict : spLevelDict = spDict[aKey]
-          newChanged = Grammar._collectScopePaths(
-            aStruct=aValue, spDict=spLevelDict,
-            spKeys=spKeys, withAction=withAction
-          )
-          if aKey not in spDict and spLevelDict : 
-            changed = True
-            spDict[aKey] = spLevelDict
-          changed = changed or newChanged
-    elif isinstance(aStruct, list) :
-      for anIndex, aValue in enumerate(aStruct) :
-        spLevelDict = {}
-        if anIndex in spDict : spLevelDict = spDict[anIndex]
-        newChanged = Grammar._collectScopePaths(
-          aStruct=aValue, spDict=spLevelDict, 
-          spKeys=spKeys, withAction=withAction
+  def addScopeRules(aScope, aRule, patternName=None) :
+    if 'name' in aRule :
+      if aRule['name'] != aScope :
+        ruleName = aRule['name']
+        newRule = {
+          'name' : ruleName
+        }
+        if ScopeActions.hasAction(ruleName) :
+          action = ScopeActions.getAction(ruleName)
+          if '__action__' in action and 'method' in action['__action__'] :
+            theMethod = action['__action__']['method']
+            newRule['action'] = theMethod.__module__+'.'+theMethod.__name__
+
+        if patternName : newRule['pattern'] = patternName
+        if 'begin' in aRule :
+          newRule['begin'] = aRule['begin']
+          if 'beginCaptures' in aRule :
+            newRule['beginCaptures'] = aRule['beginCaptures']
+        if 'match' in aRule :
+          newRule['match'] = aRule['match']
+          if 'captures' in aRule : 
+            newRule['captures'] = aRule['captures']
+        Grammar.scopes2rules[aScope]['rules'].append(newRule)
+        return
+    if 'end' in aRule : 
+      anEndRule = {
+        'match' : aRule['end']
+      }
+      if 'endCaptures' in aRule :
+        anEndRule['captures'] = aRule['endCaptures']
+      Grammar.scopes2rules[aScope]['endRules'].append(anEndRule)
+    if 'patterns' in aRule :
+      for aPattern in aRule['patterns'] :
+        Grammar.addScopeRules(aScope, aPattern)
+    if 'include' in aRule :
+      includeKey = aRule['include'].lstrip('#')
+      if includeKey in Grammar.repository :
+        Grammar.addScopeRules(
+          aScope, Grammar.repository[includeKey], includeKey
         )
-        if anIndex not in spDict and spLevelDict :
-          changed = True
-          spDict[anIndex] = spLevelDict
-        changed = changed or newChanged
-    return changed
+
+  def addScope(aScope, howFound, aRule=None) :
+    s2r = Grammar.scopes2rules
+    if aScope not in s2r : s2r[aScope] = {
+      'found'    : howFound,
+      'endRules' : [],
+      'rules'    : []
+    }
+    if aRule : Grammar.addScopeRules(aScope, aRule)
+
+  def collectRules() :
+    # base case
+    for aKey, aRule in Grammar.repository.items() :
+      Grammar._collectRules(aRule)
+    return Grammar.scopes2rules
+
+  def _collectRules(aRule) :
+    if 'name' in aRule :
+      Grammar.addScope(aRule['name'], 'rule.name', aRule)
+      #return
+    if 'include' in aRule and aRule['include'][0] not in '#$' :
+      Grammar.addScope(aRule['include'], 'include.name')
+    for aCapKey in ['captures', 'beginCaptures', 'endCaptures'] :
+      if aCapKey in aRule : 
+        for aKey, aCapture in aRule[aCapKey].items() :
+          if 'name' in aCapture :
+            Grammar.addScope(aCapture['name'], f'{aCapKey}.name')
+    if 'patterns' in aRule :
+      for aPattern in aRule['patterns'] :
+        Grammar._collectRules(aPattern)
+
+  def collectScopePaths(withAction=False) :
+    return sorted(Grammar.collectRules().keys())
 
   def removePatternsWithoutActions() :
     # base case
@@ -220,16 +221,19 @@ class Grammar :
       for anIndex in indices2delete :
         del aValue[anIndex]
       
-  def pruneRepository(aScope) :
-    patRefs     = Grammar.collectPatternReferences(aScope)
-    repo        = Grammar.repository
+  def pruneRepository(someScopes=None) :
+    keys2keep   = {}
     keys2delete = []
+    repo        = Grammar.repository
+    patRefs     = Grammar.collectPatternReferences(someScopes)
     for aName in repo :
-      if aName not in patRefs and f"#{aName}" not in patRefs :
-        keys2delete.append(aName)
-    for aName in keys2delete :
-      del repo[aName]
-    return keys2delete
+      if aName in patRefs or f"#{aName}" in patRefs :
+        keys2keep[aName] = True
+    for aKey in list(repo.keys()):
+      if aKey not in repo :
+        keys2delete.append(aKey)
+        del repo[aKey]
+    return sorted(keys2delete)
 
   def checkRepository(aScope) :
     patRefs = Grammar.collectPatternReferences(aScope)
@@ -266,11 +270,16 @@ class Grammar :
     return False
 
   def dumpGrammar() :
-    print("------------------------------------------------")
+    print("--repository -----------------------------------")
     print(yaml.dump(Grammar.repository))
-    print("------------------------------------------------")
+    print("--scopes 2 patterns_----------------------------")
     print(yaml.dump(Grammar.scopes2patterns))
-    print("------------------------------------------------")
+    print("--base scopes-----------------------------------")
     print(yaml.dump(Grammar.baseScopes))
     print("------------------------------------------------")
 
+  def matchUsing(aLine, aScope) :
+    if aScope not in Grammar.scopes2patterns : return None
+    aPattern = Grammar.scopes2patterns[aScope]
+    if aPattern not in Grammar.repository : return None
+    aRule = Gramamr.repository[aPattern]
