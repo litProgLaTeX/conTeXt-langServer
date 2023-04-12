@@ -20,6 +20,7 @@ class Grammar :
   repository = {}
   scopes2patterns = {}
   scopes2rules = {}
+  deletedScopes = []
   baseScopes = {}
 
   def addPatternsToRepository(aName, aScope, patterns) :
@@ -102,7 +103,6 @@ class Grammar :
             #print(f"  {aPatRef}")
             patRefs[aPatRef] = True
     return list(patRefs.keys())
-  
 
   def addScopeRules(aScope, aRule, patternName=None) :
     if 'name' in aRule :
@@ -111,11 +111,13 @@ class Grammar :
         newRule = {
           'name' : ruleName
         }
-        if ScopeActions.hasAction(ruleName) :
-          action = ScopeActions.getAction(ruleName)
-          if '__action__' in action and 'method' in action['__action__'] :
-            theMethod = action['__action__']['method']
-            newRule['action'] = theMethod.__module__+'.'+theMethod.__name__
+        someActions = ScopeActions.getAllActions(ruleName)
+        if someActions :
+          actions = {}
+          for anAction in someActions :
+            theMethod = anAction['method']
+            actions[anAction['scope']] = theMethod.__module__+'.'+theMethod.__name__
+          newRule['actions'] = actions
 
         if patternName : newRule['pattern'] = patternName
         if 'begin' in aRule :
@@ -178,62 +180,38 @@ class Grammar :
   def collectScopePaths(withAction=False) :
     return sorted(Grammar.collectRules().keys())
 
-  def removePatternsWithoutActions() :
+  def pruneRules() :
     # base case
-    scopePaths = Grammar.collectScopePaths(withAction=True)
-    repo = Grammar.repository
-    names2delete = []
-    for aName, aPattern in repo.items() :
-      if aName not in scopePaths : 
-        names2delete.append(aName)
-      else :
-        Grammar._removePatternsWithoutActions(aPattern, scopePaths[aName])
-    for aName in names2delete :
-      del repo[aName]
+    scopes2delete = []
+    s2r = Grammar.scopes2rules
+    for aScope in s2r :
+      if not Grammar.scopeHasAction(aScope) :
+        scopes2delete.append(aScope)
+    for aScope in scopes2delete :
+      del s2r[aScope]
+    Grammar.deletedScopes = scopes2delete
 
-  def _removePatternsWithoutActions(aStruct, spLevelDict) :
-    # removePatternsWithoutActions recursion...
-    if isinstance(aStruct, dict) :
-      for aKey, aValue in aStruct.items() :
-        if aKey == 'patterns' :
-          indices2delete = []
-          for anIndex, aPattern in enumerate(aValue) :
-            if anIndex not in spLevelDict['patterns'] : 
-              indices2delete.append(anIndex)
-            elif anIndex in spLevelDict['patterns'] :
-              Grammar._removePatternsWithoutActions(
-                aPattern, spLevelDict['patterns'][anIndex]
-              )
-          indices2delete.reverse()
-          for anIndex in indices2delete :
-            del aValue[anIndex]
-        elif aKey in spLevelDict :
-          Grammar._removePatternsWithoutActions(aValue, spLevelDict[aKey])
+  def checkRuleForAction(aRule) :
+    if 'name' in aRule :
+      if aRule['name'] in Grammar.scopes2rules :
+        return Grammar.scopeHasAction(aRule['name'])
+      for aCaptureKey in ['captures', 'beginCaptures'] :
+        if aCaptureKey in aRule :
+          for aKey, aCapture in aRule[aCaptureKey] :
+            if Grammar.checkRuleForAction(aCapture) :
+              return True
+    return False
 
-    elif isinstance(aStruct, list) :
-      indices2delete = []
-      for anIndex, aPattern in enumerate(aStruct) :
-        if anIndex not in spLevelDict :
-          indices2delete.append(anIndex)
-          continue
-        Grammar._removePatternsWithoutActions(aPattern, spLevelDict[anIndex])
-      indices2delete.reverse()
-      for anIndex in indices2delete :
-        del aValue[anIndex]
-      
-  def pruneRepository(someScopes=None) :
-    keys2keep   = {}
-    keys2delete = []
-    repo        = Grammar.repository
-    patRefs     = Grammar.collectPatternReferences(someScopes)
-    for aName in repo :
-      if aName in patRefs or f"#{aName}" in patRefs :
-        keys2keep[aName] = True
-    for aKey in list(repo.keys()):
-      if aKey not in repo :
-        keys2delete.append(aKey)
-        del repo[aKey]
-    return sorted(keys2delete)
+  def scopeHasAction(aScope) :
+    aRule = Grammar.scopes2rules[aScope]
+    if 'actions' in aRule : return True
+    someRules = []
+    someRules.extend(aRule['endRules'])
+    someRules.extend(aRule['rules'])
+    for aSubRule in someRules :
+      if Grammar.checkRuleForAction(aSubRule) :
+        return True
+    return False
 
   def checkRepository(aScope) :
     patRefs = Grammar.collectPatternReferences(aScope)
