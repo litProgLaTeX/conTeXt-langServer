@@ -126,8 +126,7 @@ class Grammar :
         if someActions :
           actions = {}
           for anAction in someActions :
-            theMethod = anAction['method']
-            actions[anAction['scope']] = theMethod.__module__+'.'+theMethod.__name__
+            actions[anAction.scope] = anAction
           newRule['actions'] = actions
 
         if patternName : newRule['pattern'] = patternName
@@ -160,11 +159,18 @@ class Grammar :
 
   def addScope(aScope, howFound, aRule=None) :
     s2r = Grammar.scopes2rules
-    if aScope not in s2r : s2r[aScope] = {
+    newRule = {
       'found'    : howFound,
       'endRules' : [],
       'rules'    : []
     }
+    someActions = ScopeActions.getAllActions(aScope)
+    if someActions :
+      actions = {}
+      for anAction in someActions :
+        actions[anAction.scope] = anAction
+      newRule['actions'] = actions
+    if aScope not in s2r : s2r[aScope] = newRule
     if aRule : Grammar.addScopeRules(aScope, aRule)
 
   def collectRules() :
@@ -195,8 +201,13 @@ class Grammar :
     # base case
     scopes2delete = []
     s2r = Grammar.scopes2rules
-    for aScope in s2r :
-      if not Grammar.scopeHasAction(aScope) :
+    for aScope, scopeRules in s2r.items() :
+      rules2delete = []
+      for ruleIndex, aRule in enumerate(scopeRules['rules']) :
+        if 'actions' not in aRule : rules2delete.append(ruleIndex)
+      rules2delete.reverse()
+      for anIndex in rules2delete : del scopeRules['rules'][anIndex]
+      if len(scopeRules['rules']) < 1 and 'actions'  not in scopeRules :
         scopes2delete.append(aScope)
     for aScope in scopes2delete :
       del s2r[aScope]
@@ -286,7 +297,7 @@ class Grammar :
     print("--repository ------------------------------------------------")
     if Grammar.repository      : print(yaml.dump(Grammar.repository))
     print("--scopes 2 patterns_-----------------------------------------")
-    if Gramamr.scopes2patterns : print(yaml.dump(Grammar.scopes2patterns))
+    if Grammar.scopes2patterns : print(yaml.dump(Grammar.scopes2patterns))
     print("--base scopes------------------------------------------------")
     if Grammar.baseScopes      : print(yaml.dump(Grammar.baseScopes))
     print("-------------------------------------------------------------")

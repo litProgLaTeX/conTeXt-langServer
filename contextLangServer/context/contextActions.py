@@ -3,14 +3,27 @@ from contextLangServer.processor.scopeActions import ScopeActions
 
 # for the scope actions tests
 #
-@ScopeActions.method('??')
-def loadedStrParam(disp, ctx, aMessage, **kwargs) :
+@ScopeActions.method('meta.context.starttext')
+def startText(disp, ctx, aMessage, **kwargs) :
   print("-----------------------------------------")
-  print('loadedStrParam')
+  print('startText')
   print(aMessage)
   print("-----------------------------------------")
   ctx.append({
-    'method'   : 'loadedStrParam',
+    'method'   : 'startText',
+    'msg'      : aMessage,
+    'kwargs'   : kwargs,
+    'dispType' : type(disp)
+  })
+
+@ScopeActions.method("meta.bi.context")
+def biConTeXt(disp, ctx, aMessage, **kwargs) :
+  print("-----------------------------------------")
+  print('biConTeXt')
+  print(aMessage)
+  print("-----------------------------------------")
+  ctx.append({
+    'method'   : 'biConTeXt',
     'msg'      : aMessage,
     'kwargs'   : kwargs,
     'dispType' : type(disp)
@@ -115,12 +128,12 @@ modules:
 \margintext
 \margintitle
 \midaligned
-\NC
-\NR
-\nl
-\noheaderandfooterlines
-\noindenting
-\nowhitespace
+\\NC
+\\NR
+\\nl
+\\noheaderandfooterlines
+\\noindenting
+\\nowhitespace
 \overstrikes
 \page
 \pagereference
@@ -242,10 +255,10 @@ modules:
 \tt
 \type
 \typebuffer
-\underbar
-\unit
-\useexternaldocument
-\usemodule
+\\underbar
+\\unit
+\\useexternaldocument
+\\usemodule
 \VL
 \vskip
 \whitespace

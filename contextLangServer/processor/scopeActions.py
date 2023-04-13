@@ -6,6 +6,24 @@ import pkgutil
 import sys
 import yaml
 
+class ScopeAction :
+  def __init__(self, scopeStr, actionFunc, kwsPacked, kwargsDict) :
+    self.scope      = scopeStr
+    self.func       = actionFunc
+    self.packed     = kwsPacked
+    self.kwargsDict = kwargsDict
+
+  def __str__(self) :
+    theMethod     = self.func
+    theMethodName = theMethod.__module__+'.'+theMethod.__name__
+    return f"{self.scope} : {self.func.__module__}.{self.func.__name__}"
+
+  async def run(self) :
+    if self.packed :
+      return await func(self.kwargsDict)
+    else :
+      return await self.func(**self.kwargsDict)
+
 class ScopeActions :
 
   # Class variables and definitions
@@ -21,12 +39,9 @@ class ScopeActions :
       if aScopePart not in curScope :
         curScope[aScopePart] = {}
       curScope = curScope[aScopePart]
-    curScope['__action__'] = {
-      'scope'  : scopeStr,
-      'method' : aFunc,
-      'packed' : packed,
-      'kwargs' : copy.deepcopy(kwargsDict)
-    }
+    curScope['__action__'] = ScopeAction(
+      scopeStr, aFunc, packed, copy.deepcopy(kwargsDict)
+    )
     #print(yaml.dump(ScopeActions.actions))
 
   def method(scopeStr, packed=True, kwargsDict={}) :
@@ -36,15 +51,6 @@ class ScopeActions :
       )
       return func
     return decorator_scopeMethod
-
-  async def runTheAction(anAction) :
-    if anAction and 'func' in anAction :
-      kwargsDict = {}
-      if 'kwargsDict' in anAction : kwargsDict = anAction['kwargsDict']
-      if 'packed' in anAction :
-        return await anAction['func'](kwargsDict)
-      else :
-        return await anAction['func'](**kwargsDict)
 
   def getAction(scopeStr) :
     scopeParts = scopeStr.split('.')
@@ -82,23 +88,6 @@ class ScopeActions :
     if someActions :
       return await ScopeActions.runTheAction(someActions[0])
 
-  """
-  def pattern(scopeStr, aPattern) :
-    scopeParts = scopeStr.split('.')
-    #print(yaml.dump(scopeParts))
-    curScope = ScopeActions.actions
-    for aScopePart in scopeParts :
-      #print(aScopePart)
-      if aScopePart not in curScope :
-        curScope[aScopePart] = {}
-      curScope = curScope[aScopePart]
-    curScope['__pattern__'] = {
-      'scope'   : scopeStr,
-      'pattern' : aPattern,
-    }
-    #print(yaml.dump(ScopeActions.actions))
-  """
-
   def loadActionsFromDir(aDir) :
     #Load/import all scope actions found in the aDir directory.
 
@@ -112,32 +101,18 @@ class ScopeActions :
     for (_, module_name, _) in pkgutil.iter_modules([aDir]) :
       theModule = importlib.import_module(aPkgPath+'.'+module_name)
 
-  def listActions() :
+  def printActions() :
     actions = ScopeActions.actions
     print("--actions----------------------------------------------------")
-    ScopeActions._listActions('', actions)
+    ScopeActions._printActions('', actions)
     print("-------------------------------------------------------------")
 
-  def _listActions(baseScope, actions) :
+  def _printActions(baseScope, actions) :
     if '__action__' in actions :
-      theAction = actions['__action__']
-      print("{} : {}".format(
-        theAction['scope'],
-        'silly'
-      ))
+      print(actions['__action__'])
+      return
     for aPartKey in sorted(actions.keys()) :
-      ScopeActions._listActions(
+      ScopeActions._printActions(
         baseScope+'.'+aPartKey,
         actions[aPartKey]
       )
-
-  """
-  # Instance varaibles and definitions
-
-  def __init__(self, ctx=None, debugIO=None) :
-    self.context = ctx
-    self.debugIO = debugIO
-
-  def getContext(self) :
-    return self.context
-  """
