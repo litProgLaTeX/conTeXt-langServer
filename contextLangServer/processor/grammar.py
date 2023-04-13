@@ -207,7 +207,7 @@ class Grammar :
         if 'actions' not in aRule : rules2delete.append(ruleIndex)
       rules2delete.reverse()
       for anIndex in rules2delete : del scopeRules['rules'][anIndex]
-      if len(scopeRules['rules']) < 1 and 'actions'  not in scopeRules :
+      if len(scopeRules['rules']) < 1 and 'actions' not in scopeRules :
         scopes2delete.append(aScope)
     for aScope in scopes2delete :
       del s2r[aScope]
