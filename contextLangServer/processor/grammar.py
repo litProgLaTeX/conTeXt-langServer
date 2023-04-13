@@ -85,14 +85,11 @@ class Grammar :
         syntaxDict = json.loads(syntaxStr)
         Grammar.loadFromDict(syntaxDict)
 
-  def collectPatternReferences(someScopes=None) :
+  def collectPatternReferences() :
     repo = Grammar.repository
     patRefs = {}
-    if someScopes is None :
-      for aScope in Grammar.baseScopes.keys() :
-        patRefs[aScope] = True
-    elif isinstance(someScopes, str) :
-      patRefs[someScopes] = True
+    for aScope in Grammar.baseScopes.keys() :
+      patRefs[aScope] = True
     for aName, aPattern in repo.items() :
       #print(aName)
       if 'patterns' in aPattern :
@@ -102,7 +99,21 @@ class Grammar :
             if aPatRef == '$self' : continue
             #print(f"  {aPatRef}")
             patRefs[aPatRef] = True
-    return list(patRefs.keys())
+    return sorted(patRefs.keys())
+
+  def checkRepository() :
+    patRefs = Grammar.collectPatternReferences()
+    repo    = Grammar.repository
+    missingPats = []
+    extraPats   = []
+    for aName in patRefs :
+      aName = aName.lstrip('#')
+      if aName not in repo :
+        missingPats.append(aName)
+    for aName in repo :
+      if aName not in patRefs and f"#{aName}" not in patRefs :
+        extraPats.append(aName)
+    return missingPats, extraPats, patRefs
 
   def addScopeRules(aScope, aRule, patternName=None) :
     if 'name' in aRule :
@@ -177,8 +188,8 @@ class Grammar :
       for aPattern in aRule['patterns'] :
         Grammar._collectRules(aPattern)
 
-  def collectScopePaths(withAction=False) :
-    return sorted(Grammar.collectRules().keys())
+  def collectScopePaths() :
+    return sorted(Grammar.scopes2rules.keys())
 
   def pruneRules() :
     # base case
@@ -213,20 +224,6 @@ class Grammar :
         return True
     return False
 
-  def checkRepository(aScope) :
-    patRefs = Grammar.collectPatternReferences(aScope)
-    repo    = Grammar.repository
-    missingPats = []
-    extraPats   = []
-    for aName in patRefs :
-      aName = aName.lstrip('#')
-      if aName not in repo :
-        missingPats.append(aName)
-    for aName in repo :
-      if aName not in patRefs and f"#{aName}" not in patRefs :
-        extraPats.append(aName)
-    return missingPats, extraPats, patRefs
-
   def saveToDict(aScope) :
     if aScope not in Grammar.baseScopes :
       return None
@@ -247,17 +244,49 @@ class Grammar :
       return True
     return False
 
-  def dumpGrammar() :
-    print("--repository -----------------------------------")
-    print(yaml.dump(Grammar.repository))
-    print("--scopes 2 patterns_----------------------------")
-    print(yaml.dump(Grammar.scopes2patterns))
-    print("--base scopes-----------------------------------")
-    print(yaml.dump(Grammar.baseScopes))
-    print("------------------------------------------------")
-
   def matchUsing(aLine, aScope) :
     if aScope not in Grammar.scopes2patterns : return None
     aPattern = Grammar.scopes2patterns[aScope]
     if aPattern not in Grammar.repository : return None
     aRule = Gramamr.repository[aPattern]
+
+  def printPatternReferences() :
+    theReferences = Grammar.collectPatternReferences()
+    print("--patterns---------------------------------------------------")
+    if theReferences : print(yaml.dump(theReferences))
+    print("-------------------------------------------------------------")
+
+  def printCheckRepositoryReport() :
+    missingPatterns, extraPatterns, patternReferences = Grammar.checkRepository()
+    print("")
+    print("--missing patterns-------------------------------------------")
+    if missingPatterns   : print(yaml.dump(missingPatterns))
+    else : print("")
+    print("--extra patterns---------------------------------------------")
+    if extraPatterns     : print(yaml.dump(extraPatterns))
+    else : print("")
+    print("--patterns---------------------------------------------------")
+    if patternReferences : print(yaml.dump(patternReferences))
+    else : print("")
+    print("-------------------------------------------------------------")
+
+  def printScopePaths() :
+    thePaths = Grammar.collectScopePaths()
+    print("---scope paths-----------------------------------------------")
+    if thePaths : print(yaml.dump(thePaths))
+    print("-------------------------------------------------------------")
+
+  def printRules() :
+    theRules = Grammar.scopes2rules
+    print("--rules------------------------------------------------------")
+    if theRules : print(yaml.dump(theRules))
+    print("-------------------------------------------------------------")
+
+  def printGrammar() :
+    print("--repository ------------------------------------------------")
+    if Grammar.repository      : print(yaml.dump(Grammar.repository))
+    print("--scopes 2 patterns_-----------------------------------------")
+    if Gramamr.scopes2patterns : print(yaml.dump(Grammar.scopes2patterns))
+    print("--base scopes------------------------------------------------")
+    if Grammar.baseScopes      : print(yaml.dump(Grammar.baseScopes))
+    print("-------------------------------------------------------------")
