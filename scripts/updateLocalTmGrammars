@@ -1,0 +1,12 @@
+#! .venv/bin/python
+
+import os
+import site;
+import yaml
+
+venvSitePackage = site.getsitepackages()[0]
+venvTmGrammars  = os.path.join(venvSitePackage, 'tmGrammars' )
+#print(venvTmGrammars)
+
+os.system(f"rm -rf {venvTmGrammars}")
+os.system(f"cp -r ../tmGrammars/tmGrammars {venvSitePackage}")

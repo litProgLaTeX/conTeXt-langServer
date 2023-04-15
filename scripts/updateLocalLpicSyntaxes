@@ -4,8 +4,8 @@ import os
 import site;
 import yaml
 
-venvSitePackage  = site.getsitepackages()[0]
-venvLpicSyntaxes = os.path.join(venvSitePackage, 'lpicSyntaxes')
+venvSitePackage = site.getsitepackages()[0]
+venvLpicSyntaxes = os.path.join(venvSitePackage, 'lpicSyntaxes' )
 #print(venvLpicSyntaxes)
 
 os.system(f"rm -rf {venvLpicSyntaxes}")
