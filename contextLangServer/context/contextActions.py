@@ -1,5 +1,5 @@
 
-from contextLangServer.processor.scopeActions import ScopeActions
+from tmGrammars.scopeActions import ScopeActions
 
 # for the scope actions tests
 #
