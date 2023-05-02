@@ -1,24 +1,21 @@
 
 export function registerActions(ScopeActions) {
 
-  function startText(disp, ctx, aMessage, callArgs) {
+  function loadComponent(thisScope, theScope, theTokens, callArgs) {
     console.log("----------------------------------------------------------")
-    console.log("statText")
-    console.log(aMessage)
+    console.log("loadComponent")
+    console.log(`thisScope: ${thisScope}`)
+    console.log(` theScope: ${theScope}`)
+    console.log(`theTokens: ${theTokens}`)
+    console.log(` callArgs: ${callArgs}`)
     console.log("----------------------------------------------------------")
-    ctx.append({
-      'method'   : 'startText',
-      'msg'      : aMessage,
-      'kwargs'   : callArgs,
-      'dispType' : 'silly'
-    })
   }
 
   ScopeActions.addScopedAction(
-    'meta.context.starttext',
+    'keyword.control.structure.context',
     import.meta.url,
     { },
-    startText
+    loadComponent
   )
 
 }
