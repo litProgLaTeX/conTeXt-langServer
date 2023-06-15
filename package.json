@@ -1,0 +1,34 @@
+{
+  "name": "context-langserver",
+  "description": "A node based ConTeXt langauge server",
+  "version": "0.0.1",
+  "author": "Stephen Gaito",
+  "license": "Apache-2.0",
+  "main": "src/context-langserver.js",
+  "engines": {
+    "node": "*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/litProgConTeXt/conTeXt-langServer"
+  },
+  "bugs": {
+    "url": "https://github.com/litProgConTeXt/conTeXt-langServer/issues"
+  },
+  "homepage": "https://github.com/litProgConTeXt/conTeXt-langServer#readme",
+  "dependencies": {
+    "lpic-syntaxes": "github:litProgConTeXt/lpic-syntaxes",
+    "lpic-modules": "github:litProgConTeXt/lpic-modules",
+    "vscode-languageserver": "^8.1.0",
+    "vscode-languageserver-textdocument": "^1.0.8",
+    "yaml": "^2.2.1"
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "tsc --build --clean"
+  },
+  "devDependencies": {
+    "@types/node": "^20.3.1",
+    "typescript": "^5.1.3"
+  }
+}

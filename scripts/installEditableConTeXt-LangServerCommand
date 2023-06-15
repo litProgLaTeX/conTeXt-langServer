@@ -1,19 +1,19 @@
 #!/bin/bash
 
 # This bash script uses the current working directory to create a simple
-# script to run the context-langserver command anywhere in a user's
+# script to run the sample-server command anywhere in a user's
 # workspace.
 
-cmdScript=$(pwd)/.venv/bin/context-langserver
+cmdScript=$(pwd)/out/context-langserver.js
 
 cat << CMD_SCRIPT > $HOME/.local/bin/context-langserver
 #!/bin/sh
 
-# This shell script was created by the ConTeXt2ninja tool
+# This shell script was created by the context-langserver tool
 #       './scripts/installEditableConTeXt-LangServerCommand'
 # script.
 
-exec $cmdScript \$@
+exec node $cmdScript \$@
 CMD_SCRIPT
 
 chmod a+x $HOME/.local/bin/context-langserver
