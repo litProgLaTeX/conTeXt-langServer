@@ -53,6 +53,10 @@ connection.onInitialize((params: InitializeParams) => {
       completionProvider: {
         resolveProvider: true
       }
+    },
+    serverInfo: {
+      name: 'ConTeXt-LangServer',
+      version: '0.0.1'
     }
   };
   if (hasWorkspaceFolderCapability) {
@@ -218,6 +222,20 @@ connection.onCompletionResolve(
     return item;
   }
 );
+
+// finally register our own the `server/configuration` request
+// to allow the server explorer to obtain our current configuration....
+//
+connection.onRequest('server/configuration', function(params: any){
+  var result = {
+    'hasConfigurationCapability'   : hasConfigurationCapability,
+    'hasWorkspaceFolderCapability' : hasWorkspaceFolderCapability,
+    'hasDiagnosticRelatedInformationCapability': hasDiagnosticRelatedInformationCapability
+  }
+  return JSON.stringify(result)
+})
+
+
 
 // Make the text document manager listen on the connection
 // for open, change and close text document events

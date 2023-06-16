@@ -18,18 +18,40 @@ to build a very simple Python LSP client.
 # I am very unsure where the lsprotocol and pygls libraries are being
 # loaded from.
 
+import json
 import yaml
 
 from lsprotocol.types import CLIENT_REGISTER_CAPABILITY
 from lsprotocol.types import RegistrationParams
 from lsprotocol.types import ClientCapabilities
 from lsprotocol.types import InitializeParams
+from lsprotocol.types import InitializedParams
+from lsprotocol.types import WorkspaceClientCapabilities
+from lsprotocol.types import DidChangeConfigurationClientCapabilities
+from lsprotocol.types import CompletionParams
+from lsprotocol.types import TextDocumentIdentifier
+from lsprotocol.types import Position
 
 from pygls.lsp.client import LanguageClient
 
-client = LanguageClient('lspClient', 'v0.1')
+class ExplorerServerConfig :
+    hasConfigurationCapability : bool
+    hasWorkspaceFolderCapability : bool
+    hasDiagnosticRelatedInformationCapability : bool
+
+class ExplorerLanguageClient(LanguageClient) :
+    async def server_configuration_async(self, params) -> ExplorerServerConfig :
+        if self.stopped:
+            raise RuntimeError("Client has been stopped.")
+        response = await self.protocol.send_request_async("server/configuration", params)
+        return json.loads(response)
+
+client = ExplorerLanguageClient('lspClient', 'v0.1')
+
+registrations = []
 
 @client.feature(CLIENT_REGISTER_CAPABILITY)
-def registerCapability(client: LanguageClient, params: RegistrationParams) :
+def registerCapability(client: ExplorerLanguageClient, params: RegistrationParams) :
+  registrations.append(params)
   return None
 
