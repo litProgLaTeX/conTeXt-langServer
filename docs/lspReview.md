@@ -157,7 +157,7 @@ messages:
 
 - [workspace/workspaceFolders](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_workspaceFolders) 
   - a `s->c` request which responds with a list of the workspace folders and
-    thier URIs 
+    their URIs 
   - We **implement** this request so that we can obtain the base directory of
     each workspace (and essentially the base directory of the ConTeXt document)
 - [workspace/didChangeWorkspaceFolders](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_didChangeWorkspaceFolders)
