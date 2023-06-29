@@ -18,6 +18,8 @@ import {
   TextDocument
 } from 'vscode-languageserver-textdocument';
 
+import { DocumentCache } from 'lpic-modules/out/lib/documents.js'
+
 // Create a connection for the server, using Node's STDIO as a transport.
 // Also include all preview / proposed LSP features.
 const connection = createConnection(ProposedFeatures.all);
@@ -234,8 +236,6 @@ connection.onRequest('server/configuration', function(params: any){
   }
   return JSON.stringify(result)
 })
-
-
 
 // Make the text document manager listen on the connection
 // for open, change and close text document events
