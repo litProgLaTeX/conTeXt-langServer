@@ -20,6 +20,10 @@ import {
 
 import { DocumentCache } from 'lpic-modules/dist/lib/documents.js'
 
+import { Logging, ValidLogger } from 'lpic-modules/dist/lib/logging.js'
+const logger : ValidLogger = Logging.getLogger('lpic')
+
+
 // Create a connection for the server, using Node's STDIO as a transport.
 // Also include all preview / proposed LSP features.
 const connection = createConnection(ProposedFeatures.all);
@@ -32,6 +36,9 @@ let hasWorkspaceFolderCapability = false;
 let hasDiagnosticRelatedInformationCapability = false;
 
 connection.onInitialize((params: InitializeParams) => {
+  logger.debug("onInitialize")
+  logger.debug(params)
+
   const capabilities = params.capabilities;
 
   // Does the client support the `workspace/configuration` request?
@@ -68,6 +75,8 @@ connection.onInitialize((params: InitializeParams) => {
       }
     };
   }
+  logger.debug("returning initialization result")
+  logger.debug(result)
   return result;
 });
 
@@ -78,6 +87,7 @@ connection.onInitialized(() => {
   }
   if (hasWorkspaceFolderCapability) {
     connection.workspace.onDidChangeWorkspaceFolders(_event => {
+      logger.debug('Workspace folder change event received.');
       connection.console.log('Workspace folder change event received.');
     });
   }
@@ -243,3 +253,5 @@ documents.listen(connection);
 
 // Listen on the connection
 connection.listen();
+
+logger.info("ConTeXt-LangServer closing down")

@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# This script used Linux tools to check for the running langauge server
+
+ps -ef | grep node | grep context-langserver
