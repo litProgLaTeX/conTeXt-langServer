@@ -1,5 +1,0 @@
-#!/bin/sh
-
-reset
-
-exec .venv/bin/python -m pytest $*

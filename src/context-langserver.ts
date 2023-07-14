@@ -18,7 +18,7 @@ import {
   TextDocument
 } from 'vscode-languageserver-textdocument';
 
-import { DocumentCache } from 'lpic-modules/out/lib/documents.js'
+import { DocumentCache } from 'lpic-modules/dist/lib/documents.js'
 
 // Create a connection for the server, using Node's STDIO as a transport.
 // Also include all preview / proposed LSP features.

@@ -4,7 +4,7 @@
 # script to run the sample-server command anywhere in a user's
 # workspace.
 
-cmdScript=$(pwd)/out/context-langserver.js
+cmdScript=$(pwd)/dist/src/context-langserver.js
 
 cat << CMD_SCRIPT > $HOME/.local/bin/context-langserver
 #!/bin/sh
