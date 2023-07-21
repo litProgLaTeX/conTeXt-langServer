@@ -23,10 +23,29 @@ import { DocumentCache } from 'lpic-modules/dist/lib/documents.js'
 import { Logging, ValidLogger } from 'lpic-modules/dist/lib/logging.js'
 const logger : ValidLogger = Logging.getLogger('lpic')
 
+process.on('uncaughtExceptionMonitor', function(err:Error, origin:string){
+  logger.error("Uncaught Exception (monitor)")
+  logger.error(err.message)
+  logger.error(err.stack)
+  logger.error(origin)
+})
+
+process.on('unhandledRejection', function(reason : Error, promise:Promise<any>){
+  logger.error("Unhandlded Rejection")
+  logger.error(reason.toString())
+  promise.catch(function(err:Error){
+    logger.error(err.message)
+    logger.error(err.stack)
+  })
+})
 
 // Create a connection for the server, using Node's STDIO as a transport.
 // Also include all preview / proposed LSP features.
 const connection = createConnection(ProposedFeatures.all);
+
+connection.onExit(function(){
+  logger.info("ConTeXt-LangServer done (onExit)")
+})
 
 // Create a simple text document manager.
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
@@ -254,4 +273,4 @@ documents.listen(connection);
 // Listen on the connection
 connection.listen();
 
-logger.info("ConTeXt-LangServer closing down")
+logger.info("ConTeXt-LangServer setup")
